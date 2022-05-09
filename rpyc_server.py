@@ -134,13 +134,13 @@ if __name__ == '__main__':
                     if len(node_detail_lst) >= ((3*f_cnt)+1):
                         if f_cnt == 0:
                             print(
-                                f'Execute order:{final_order}!, Non-faulty nodes in System, {len(node_detail_lst)-1} of {len(node_detail_lst)} quorum suggest {final_order}')
+                                f'Execute order:{final_order}!, Non-faulty nodes in System, {len(node_detail_lst)-1} out of {len(node_detail_lst)} quorum suggest {final_order}')
 
                         else:
                             print(
-                                f'Execute order:{final_order}, {f_cnt} faulty node in System, {len(node_detail_lst)-1-f_cnt} of {len(node_detail_lst)} quorum suggest {final_order}')
+                                f'Execute order:{final_order}, {f_cnt} faulty node in System, {len(node_detail_lst)-1-f_cnt} out of {len(node_detail_lst)} quorum suggest {final_order}')
                     else:
-                        pass
+                        print(f"Execute order: cannot be determined – not enough generals in the system! {f_cnt} faulty node in the system - {len(node_detail_lst)-1-f_cnt} out of {len(node_detail_lst)} quorum not consistent")
                 except DiscoveryError:
                     print(f"DiscoveryError :{DiscoveryError}")
             else:

@@ -147,3 +147,41 @@ if __name__ == '__main__':
                 print(
                     "Incorrect order, please proposes an order to the primary again (\"attack\" or \"retreat\")")
                 continue
+       if (cmd[0].lower() == "g-state") and len(cmd)==1:
+            servers_lst = get_server_list()
+            for server in servers_lst:
+                server_ip, server_port = server
+                conn = rpyc.connect(server_ip, server_port)
+                get_detail = conn.root.get_detail()
+                ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
+                #node_detail_lst.append(get_detail)
+                print(f"G{get_detail[0]},{ide}, state={_STATE_VALUE[get_detail[2]]}")
+        if len(cmd)==3:
+            if  (cmd[0].lower() == "g-state") and (cmd[1]).isnumeric() and cmd[2].lower()=="faulty" or cmd[2].lower()=="non-faulty":
+                node_detail_lst = []
+                servers_lst = get_server_list()
+                for server in servers_lst:
+                        server_ip, server_port = server
+                        conn = rpyc.connect(server_ip, server_port)
+                        get_detail = conn.root.get_detail()
+                        ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
+                        if get_detail[0]==cmd[1] and cmd[2].lower()=="faulty":
+                            conn.root.set_state(1)
+                        if get_detail[0]==cmd[1] and cmd[2].lower()=="non-faulty":
+                            conn.root.set_state(0)
+                        print(f"G{get_detail[0]},{ide}, state={_STATE_VALUE[get_detail[2]]}")        
+                
+            
+                  
+
+        if (cmd[0].lower() == "g-kill"):
+            servers_lst = get_server_list()
+            for server in servers_lst:
+                    server_ip, server_port = server
+                    conn = rpyc.connect(server_ip, server_port)
+                    get_detail = conn.root.get_detail()
+                    ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
+                    node_detail_lst.append(get_detail)
+        if (cmd[0].lower() == "g-add"):
+            pass
+

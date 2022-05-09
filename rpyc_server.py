@@ -3,6 +3,7 @@ import datetime
 import random
 import socket
 from dataclasses import dataclass
+import sys
 from threading import Thread
 from time import sleep
 from collections import Counter
@@ -12,7 +13,7 @@ from rpyc.utils.registry import (DEFAULT_PRUNING_TIMEOUT, REGISTRY_PORT,
                                  UDPRegistryClient, UDPRegistryServer)
 from rpyc.utils.server import ThreadedServer
 
-from constants import _ACTION_KEY, _ACTION_VALUE, _PORT, _STATE_VALUE
+from constants import _ACTION_KEY, _ACTION_VALUE, _PORT, _STATE_KEY, _STATE_VALUE
 from rpc import RPCService
 
 # global variables
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     while True:
         # command = input("\nCommand: ")
         # cmd = command.split(" ")
-        cmd = ["actual-order", "attack"]
+        cmd = ["g-state", "1", "faulty"]
 
         if(cmd[0].lower() == "actual-order"):
             if(cmd[1].lower() == "attack" or cmd[1].lower() == "retreat"):
@@ -104,6 +105,7 @@ if __name__ == '__main__':
                         if (node_port != primary_port):
                             s_conn = rpyc.connect(node_ip, node_port)
                             s_conn.root.share_action_info()
+                        s_conn.close()
 
                     # Secondary votes the final action
                     for node in servers_lst:
@@ -111,6 +113,7 @@ if __name__ == '__main__':
                         if (node_port != primary_port):
                             s_conn = rpyc.connect(node_ip, node_port)
                             s_conn.root.vote_final_action()
+                        s_conn.close()
 
                     # Print The Result
                     node_detail_lst = []
@@ -126,7 +129,8 @@ if __name__ == '__main__':
                         # G1, primary, majority=attack, state=NF
                         print(
                             f"G{get_detail[0]}, {ide}, majority={_ACTION_VALUE[get_detail[1]]}, state={_STATE_VALUE[get_detail[2]]}")
-
+                        conn.close()
+                        
                     final_order_key = Counter(
                         [action[1] for action in node_detail_lst]).most_common(1)[0][0]
                     final_order = _ACTION_VALUE[final_order_key]
@@ -140,48 +144,39 @@ if __name__ == '__main__':
                             print(
                                 f'Execute order:{final_order}, {f_cnt} faulty node in System, {len(node_detail_lst)-1-f_cnt} out of {len(node_detail_lst)} quorum suggest {final_order}')
                     else:
-                        print(f"Execute order: cannot be determined – not enough generals in the system! {f_cnt} faulty node in the system - {len(node_detail_lst)-1-f_cnt} out of {len(node_detail_lst)} quorum not consistent")
+                        print(
+                            f"Execute order: cannot be determined – not enough generals in the system! {f_cnt} faulty node in the system - {len(node_detail_lst)-1-f_cnt} out of {len(node_detail_lst)} quorum not consistent")
                 except DiscoveryError:
                     print(f"DiscoveryError :{DiscoveryError}")
             else:
                 print(
                     "Incorrect order, please proposes an order to the primary again (\"attack\" or \"retreat\")")
                 continue
-       if (cmd[0].lower() == "g-state") and len(cmd)==1:
+        elif (cmd[0].lower() == "g-state"):
             servers_lst = get_server_list()
-            for server in servers_lst:
-                server_ip, server_port = server
-                conn = rpyc.connect(server_ip, server_port)
-                get_detail = conn.root.get_detail()
-                ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
-                #node_detail_lst.append(get_detail)
-                print(f"G{get_detail[0]},{ide}, state={_STATE_VALUE[get_detail[2]]}")
-        if len(cmd)==3:
-            if  (cmd[0].lower() == "g-state") and (cmd[1]).isnumeric() and cmd[2].lower()=="faulty" or cmd[2].lower()=="non-faulty":
-                node_detail_lst = []
-                servers_lst = get_server_list()
-                for server in servers_lst:
-                        server_ip, server_port = server
-                        conn = rpyc.connect(server_ip, server_port)
-                        get_detail = conn.root.get_detail()
-                        ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
-                        if get_detail[0]==int(cmd[1]) and cmd[2].lower()=="faulty":
-                            conn.root.set_state(1)
-                        if get_detail[0]==int(cmd[1]) and cmd[2].lower()=="non-faulty":
-                            conn.root.set_state(0)
-                        print(f"G{get_detail[0]},{ide}, state={_STATE_VALUE[get_detail[2]]}")        
-                
-            
-                  
 
-        if (cmd[0].lower() == "g-kill"):
-            servers_lst = get_server_list()
-            for server in servers_lst:
+            if len(cmd) == 1:
+                for server in servers_lst:
                     server_ip, server_port = server
                     conn = rpyc.connect(server_ip, server_port)
                     get_detail = conn.root.get_detail()
                     ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
-                    node_detail_lst.append(get_detail)
-        if (cmd[0].lower() == "g-add"):
-            pass
+                    print(
+                        f"G{get_detail[0]}, {ide}, state={_STATE_VALUE[get_detail[2]]}")
+                    conn.close()
+            elif (len(cmd) == 3) and (cmd[1].isnumeric()) and ((cmd[2] == "faulty") or (cmd[2] == "non-faulty")):
+                target_id = int(cmd[1])
+                target_state = cmd[2]
+                for server in servers_lst:
+                    server_ip, server_port = server
+                    conn = rpyc.connect(server_ip, server_port)
+                    get_detail = conn.root.get_detail()
+                    if get_detail[0] == target_id:
+                        conn.root.set_state(_STATE_KEY[target_state])
+                        get_detail = conn.root.get_detail()
+                    print(
+                        f"G{get_detail[0]}, state={_STATE_VALUE[get_detail[2]]}")
 
+                    conn.close()
+            else:
+                continue

@@ -25,12 +25,14 @@ class RPCService(rpyc.Service):
                 node_ip, node_port = node
                 conn = rpyc.connect(node_ip, node_port)
                 conn.root.set_action(action_key)
+                conn.close()
         elif _STATE_VALUE[self.n.STATE] == "F":
             for node in self.n.rpc_nodes:
                 fake_action_key = np.random.randint(1, 3)
                 node_ip, node_port = node
                 conn = rpyc.connect(node_ip, node_port)
                 conn.root.set_action(fake_action_key)
+                conn.close()
 
     # Secondary set action
     def exposed_set_action(self, action_key):
@@ -44,6 +46,7 @@ class RPCService(rpyc.Service):
                 if (node_port != self.n.primary) and (node_port != self.n.port):
                     conn = rpyc.connect(node_ip, node_port)
                     conn.root.collect_action(self.n.ACTION)
+                    conn.close()
         elif _STATE_VALUE[self.n.STATE] == "F":
             for node in self.n.rpc_nodes:
                 if (node_port != self.n.primary) and (node_port != self.n.port):
@@ -51,6 +54,7 @@ class RPCService(rpyc.Service):
                     node_ip, node_port = node
                     conn = rpyc.connect(node_ip, node_port)
                     conn.root.collect_action(fake_action_key)
+                    conn.close()
 
     # Secondary collects action info from another secondaries
     def exposed_collect_action(self, action_key):

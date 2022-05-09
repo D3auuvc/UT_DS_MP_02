@@ -77,37 +77,3 @@ class RPCService(rpyc.Service):
 
     def exposed_set_state(self, state):
         self.n.STATE = state
-
-    def exposed_set_primary(self, primary_port):
-        self.n.primary = primary_port
-
-    def exposed_kill(self):
-        pool = threading.enumerate()
-        for t in pool:
-            if(type(t._target) != type(None)):
-                obj = t._target.__self__
-                if(isinstance(obj, ThreadedServer)):
-                    if(obj.port == self.n.port):
-                        print(f'{self.n.id} Kill')
-                        obj.close()
-
-    def exposed_add_node(self, k):
-        maxid = 0
-        primary_port = 0
-        for node in self.n.rpc_nodes:
-            conn = rpyc.connect(node[0], node[1])
-            result = conn.root.detail()
-            if(result[0] > maxid):
-                maxid = result[0]
-            primary_port = result[2]
-        hostname = socket.gethostname()
-        ip = socket.gethostbyname(hostname)
-        ports = np.random.randint(1024, 65535, k)
-        for i in range(1, k+1):
-            service = RPCService(maxid+i, self.n.nodes, ip,
-                                 int(ports[i-1]), primary_port)
-            server = ThreadedServer(service, port=int(
-                ports[i-1]), auto_register=True)
-            t = Thread(target=server.start, name=str(maxid+i))
-            t.daemon = True
-            t.start()

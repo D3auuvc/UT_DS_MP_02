@@ -165,9 +165,9 @@ if __name__ == '__main__':
                         conn = rpyc.connect(server_ip, server_port)
                         get_detail = conn.root.get_detail()
                         ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
-                        if get_detail[0]==cmd[1] and cmd[2].lower()=="faulty":
+                        if get_detail[0]==int(cmd[1]) and cmd[2].lower()=="faulty":
                             conn.root.set_state(1)
-                        if get_detail[0]==cmd[1] and cmd[2].lower()=="non-faulty":
+                        if get_detail[0]==int(cmd[1]) and cmd[2].lower()=="non-faulty":
                             conn.root.set_state(0)
                         print(f"G{get_detail[0]},{ide}, state={_STATE_VALUE[get_detail[2]]}")        
                 

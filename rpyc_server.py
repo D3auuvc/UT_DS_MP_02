@@ -82,7 +82,7 @@ if __name__ == '__main__':
     while True:
         # command = input("\nCommand: ")
         # cmd = command.split(" ")
-        cmd = ["g-state", "1", "faulty"]
+        cmd = ["g-kill", "3"]
 
         if(cmd[0].lower() == "actual-order"):
             if(cmd[1].lower() == "attack" or cmd[1].lower() == "retreat"):
@@ -130,7 +130,7 @@ if __name__ == '__main__':
                         print(
                             f"G{get_detail[0]}, {ide}, majority={_ACTION_VALUE[get_detail[1]]}, state={_STATE_VALUE[get_detail[2]]}")
                         conn.close()
-                        
+
                     final_order_key = Counter(
                         [action[1] for action in node_detail_lst]).most_common(1)[0][0]
                     final_order = _ACTION_VALUE[final_order_key]
@@ -153,30 +153,91 @@ if __name__ == '__main__':
                     "Incorrect order, please proposes an order to the primary again (\"attack\" or \"retreat\")")
                 continue
         elif (cmd[0].lower() == "g-state"):
-            servers_lst = get_server_list()
+            try:
+                servers_lst = get_server_list()
 
-            if len(cmd) == 1:
-                for server in servers_lst:
-                    server_ip, server_port = server
-                    conn = rpyc.connect(server_ip, server_port)
-                    get_detail = conn.root.get_detail()
-                    ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
-                    print(
-                        f"G{get_detail[0]}, {ide}, state={_STATE_VALUE[get_detail[2]]}")
-                    conn.close()
-            elif (len(cmd) == 3) and (cmd[1].isnumeric()) and ((cmd[2] == "faulty") or (cmd[2] == "non-faulty")):
-                target_id = int(cmd[1])
-                target_state = cmd[2]
-                for server in servers_lst:
-                    server_ip, server_port = server
-                    conn = rpyc.connect(server_ip, server_port)
-                    get_detail = conn.root.get_detail()
-                    if get_detail[0] == target_id:
-                        conn.root.set_state(_STATE_KEY[target_state])
+                if len(cmd) == 1:
+                    for server in servers_lst:
+                        server_ip, server_port = server
+                        conn = rpyc.connect(server_ip, server_port)
                         get_detail = conn.root.get_detail()
+                        ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
+                        print(
+                            f"G{get_detail[0]}, {ide}, state={_STATE_VALUE[get_detail[2]]}")
+                        conn.close()
+                elif (len(cmd) == 3) and (cmd[1].isnumeric()) and ((cmd[2] == "faulty") or (cmd[2] == "non-faulty")):
+                    target_modify_state_id = int(cmd[1])
+                    target_state = cmd[2]
+                    for server in servers_lst:
+                        server_ip, server_port = server
+                        conn = rpyc.connect(server_ip, server_port)
+                        get_detail = conn.root.get_detail()
+                        if get_detail[0] == target_modify_state_id:
+                            conn.root.set_state(_STATE_KEY[target_state])
+                            get_detail = conn.root.get_detail()
+                        print(
+                            f"G{get_detail[0]}, state={_STATE_VALUE[get_detail[2]]}")
+
+                        conn.close()
+                else:
+                    continue
+            except DiscoveryError:
+                print(f"DiscoveryError :{DiscoveryError}")
+
+        elif (cmd[0].lower() == "g-kill") and (len(cmd) == 2) and (cmd[1].isnumeric()):
+            target_kill_id = int(cmd[1])
+            target_kill_port = 0
+            port_lst = []
+            is_primary = False
+
+            try:
+                registrar = UDPRegistryClient(port=REGISTRY_PORT)
+                servers_lst = registrar.discover("RPC")
+                sleep(2)
+
+                for server in servers_lst:
+                    server_ip, server_port = server
+                    conn = rpyc.connect(server_ip, server_port)
+                    get_detail = conn.root.get_detail()
+                    if(get_detail[0] == target_kill_id):
+                        target_kill_port = server_port
+                        if(get_detail[3] == get_detail[4]):
+                            is_primary = True
+                    else:
+                        port_lst.append(server[1])
+
+                # Show Target port and position
+                print(f"{target_kill_port}: {is_primary}")
+
+                if target_kill_port != 0:
+                    ip = servers_lst[0][0]
+                    if(is_primary):
+                        new_primary_port = random.choice(port_lst)
+                        for port in port_lst:
+                            conn = rpyc.connect(ip, port)
+                            conn.root.set_primary(new_primary_port)
+
+                    registrar.unregister(target_kill_port)
+                    conn = rpyc.connect(ip, target_kill_port)
+                    try:
+                        conn.root.kill()
+                    except EOFError:
+                        print(f'{target_kill_id} Connection Closed')
+                
+                servers_lst = registrar.discover("RPC")
+                sleep(2)
+                for server in servers_lst:
+                    server_ip, server_port = server
+                    conn = rpyc.connect(server_ip, server_port)
+                    get_detail = conn.root.get_detail()
                     print(
                         f"G{get_detail[0]}, state={_STATE_VALUE[get_detail[2]]}")
-
                     conn.close()
-            else:
-                continue
+
+
+            except DiscoveryError:
+                print(f"DiscoveryError :{DiscoveryError}")
+        elif (cmd[0].lower() == "g-add") and (len(cmd) == 2):
+            pass
+        else:
+            pass

@@ -71,7 +71,11 @@ class RPCService(rpyc.Service):
             self.n.ACTION = 2
         else:
             self.n.ACTION = 0
-
+    # Set primary port info
+    def exposed_set_primary(self, primary_port):
+        self.n.primary=primary_port
+    
+    # Get primary port info
     def exposed_get_primary(self):
         return self.n.primary
 
@@ -81,3 +85,14 @@ class RPCService(rpyc.Service):
 
     def exposed_set_state(self, state):
         self.n.STATE = state
+    
+    # Kill target node    
+    def exposed_kill(self):
+        pool = threading.enumerate()
+        for t in pool:
+            if(type(t._target)!=type(None)):
+                obj=t._target.__self__
+                if(isinstance(obj,ThreadedServer)):
+                    if(obj.port==self.n.port):
+                        print(f'{self.n.id} Kill')
+                        obj.close()

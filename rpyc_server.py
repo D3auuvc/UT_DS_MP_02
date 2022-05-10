@@ -239,10 +239,17 @@ if __name__ == '__main__':
                 print(f"DiscoveryError :{DiscoveryError}")
         elif (cmd[0].lower() == "g-add") and (len(cmd) == 2):
             if int(cmd[1])>0:
+                for server in servers_lst:     
+                    server_ip, server_port = server
+                    conn = rpyc.connect(server_ip, server_port)
+                    get_detail = conn.root.get_detail()
+                    ide = "primary" if get_detail[3] == get_detail[4] else "secondary"
+                    last_id=get_detail[0]
+                    conn.close()
                 nodes = [_PORT + i+N for i in range(int(cmd[1]))]
                 print(nodes)
                 for i in range(int(cmd[1])):
-                    service = RPCService(id=i+5, nodes=nodes, ip=ip,port=int(nodes[i]), primary=primary)
+                    service = RPCService(id=i+last_id, nodes=nodes, ip=ip,port=int(nodes[i]), primary=primary)
                     server = ThreadedServer(service, port=int(nodes[i]), auto_register=True)
                     t = Thread(target=server.start, name=str(i))
                     t.daemon = True

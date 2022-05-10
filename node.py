@@ -6,10 +6,9 @@ from rpyc.utils.factory import DiscoveryError
 
 
 class Node(Thread):
-    def __init__(self, id: int, nodes: list, ip: str, port: int, primary: int):
+    def __init__(self, id: int, ip: str, port: int, primary: int):
         Thread.__init__(self)
         self.id: int = id
-        self.nodes: list = nodes
         self.ip: int = ip
         self.port: int = port
         self.primary: int = primary

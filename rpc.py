@@ -81,8 +81,8 @@ class RPCService(rpyc.Service):
             self.n.ACTION = 2
         else:
             self.n.ACTION = 0
-    # Set primary port info
 
+    # Set primary port info
     def exposed_set_primary(self, primary_port):
         self.n.primary = primary_port
 
@@ -108,6 +108,7 @@ class RPCService(rpyc.Service):
                         obj.close()
                         break
 
+    # Add new node
     def exposed_add_node(self, k):
         max_id = 0
         max_port = 0
